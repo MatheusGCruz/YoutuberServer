@@ -55,12 +55,12 @@ function renderSite(id, title) {
 function handleEndpoint(req, res, kind, id) {
   if (kind === "mp3") {
     fetchMp3(id)
-      .then(async ({ file }) => {
+      .then(async ({ file, title }) => {
         const stat = await fs.promises.stat(file);
         res.writeHead(200, {
           "Content-Type": "audio/mpeg",
           "Content-Length": stat.size,
-          "Content-Disposition": `attachment; filename="${id}.mp3"`,
+          "Content-Disposition": `attachment; filename="${title}.mp3"`,
           "Cache-Control": "no-store",
         });
         const stream = fs.createReadStream(file);

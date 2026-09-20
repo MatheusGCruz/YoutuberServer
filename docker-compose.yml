@@ -1,7 +1,7 @@
 services:
-  youtuberserver:
+  youtubeserver:
     build: .
-    container_name: youtuberserver
+    container_name: youtubeserver
     restart: unless-stopped
     # Host port 3021 -> container port (PORT from .env, default 3030)
     ports:
