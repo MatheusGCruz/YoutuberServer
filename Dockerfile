@@ -9,7 +9,7 @@ COPY package.json ./
 COPY server.js config.js ./
 COPY lib ./lib
 
-RUN mkdir -p /app/downloads
+RUN mkdir -p /app/downloads /app/music
 
 # Port exposed on the host (see docker-compose: 3021 -> container PORT)
 EXPOSE 3021
@@ -17,6 +17,7 @@ EXPOSE 3021
 ENV NODE_ENV=production \
     YTDLP_EXE=yt-dlp \
     FFMPEG_LOCATION=/usr/bin \
-    DOWNLOAD_DIR=/app/downloads
+    DOWNLOAD_DIR=/app/downloads \
+    MUSIC_DIR=/app/music
 
 CMD ["node", "server.js"]

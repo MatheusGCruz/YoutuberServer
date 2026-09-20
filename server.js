@@ -2,10 +2,13 @@
 
 const http = require("http");
 const fs = require("fs");
-const { cfg, setYtdlpExe, setFfmpegLocation, setDownloadDir } = require("./config");
-const { sanitizeString, fetchMp3, fetchSiteData } = require("./lib/downloader");
+const path = require("path");
+const { cfg, setYtdlpExe, setFfmpegLocation, setDownloadDir, setMusicDir } = require("./config");
+const { sanitizeString, downloadMp3, fetchSiteData, cleanupDownloadDir } = require("./lib/downloader");
 
 fs.mkdirSync(cfg.downloadDir, { recursive: true });
+fs.mkdirSync(cfg.musicDir, { recursive: true });
+cleanupDownloadDir({ olderThanMs: 60 * 60 * 1000 });
 
 function escapeHtml(s) {
   return String(s)
@@ -40,11 +43,13 @@ function renderSite(id, title) {
     h1 { font-size: 1.25rem; overflow-wrap: anywhere; }
     audio { width: 100%; margin: 1rem 0; }
     a { color: #0366d6; }
+    p.saved { color: #57606a; font-size: .85rem; }
     pre { background: #f6f8fa; padding: 1rem; overflow-x: auto; font-size: .8rem; }
   </style>
 </head>
 <body>
   <h1>${escTitle}</h1>
+  <p class="saved">Saved to ${escapeHtml(cfg.musicDir)}</p>
   <audio controls preload="none" src="/mp3/${escId}"></audio>
   <p><a href="/mp3/${escId}">Download .mp3</a></p>
 </body>
@@ -52,22 +57,42 @@ function renderSite(id, title) {
 `;
 }
 
+function afterResponse(res, fn) {
+  let done = false;
+  const run = () => {
+    if (done) return;
+    done = true;
+    try {
+      fn();
+    } catch (_) {}
+  };
+  res.on("finish", run);
+  res.on("close", run);
+}
+
 function handleEndpoint(req, res, kind, id) {
   if (kind === "mp3") {
-    fetchMp3(id)
+    downloadMp3(id, cfg.cmdMp3)
       .then(async ({ file, title }) => {
         const stat = await fs.promises.stat(file);
+        const basename = path.basename(file);
         res.writeHead(200, {
           "Content-Type": "audio/mpeg",
           "Content-Length": stat.size,
           "Content-Disposition": `attachment; filename="${title}.mp3"`,
           "Cache-Control": "no-store",
         });
+        afterResponse(res, () => {
+          cleanupDownloadDir({ keep: basename });
+          cleanupDownloadDir();
+          console.log(`mp3 point - ${title}`);
+        });
         const stream = fs.createReadStream(file);
         stream.on("error", () => res.destroy());
         stream.pipe(res);
       })
       .catch((err) => {
+        cleanupDownloadDir();
         const detail = String(err.stderr || err.output || err.message || "").slice(0, 2000);
         sendJson(res, 500, { error: "command failed", detail });
       });
@@ -76,11 +101,16 @@ function handleEndpoint(req, res, kind, id) {
 
   if (kind === "sitemp3") {
     fetchSiteData(id)
-      .then((title) => {
+      .then(({ title }) => {
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        res.end(renderSite(id, title.trim()));
+        res.end(renderSite(id, title));
+        afterResponse(res, () => {
+          cleanupDownloadDir();
+          console.log(`sitemp3 - ${title}`);
+        });
       })
       .catch((err) => {
+        cleanupDownloadDir();
         sendJson(res, 500, { error: "command failed", detail: String(err.message || "").slice(0, 2000) });
       });
     return;
@@ -102,8 +132,8 @@ const server = http.createServer((req, res) => {
       res,
       200,
       "YoutuberServer\n" +
-        "  GET /mp3/[id]     -> runs CMD_MP3, streams the produced .mp3\n" +
-        "  GET /sitemp3/[id] -> runs CMD_SITEMP3, returns an HTML page with an audio player\n"
+        "  GET /mp3/[id]     -> runs the cmd, streams the .mp3, then deletes it + leftover trash\n" +
+        "  GET /sitemp3/[id] -> runs the cmd, moves the .mp3 to MUSIC_DIR, returns an HTML page\n"
     );
   }
 
@@ -129,6 +159,7 @@ server.listen(cfg.port, cfg.host, () => {
   console.log(`  mp3:     http://localhost:${cfg.port}/mp3/[string]`);
   console.log(`  sitemp3: http://localhost:${cfg.port}/sitemp3/[string]`);
   console.log(`  download dir: ${cfg.downloadDir}`);
+  console.log(`  music dir:    ${cfg.musicDir}`);
   console.log(`  yt-dlp: ${cfg.ytdlpExe} | ffmpeg: ${cfg.ffmpegLocation}`);
 });
 
@@ -141,5 +172,6 @@ module.exports = {
   setYtdlpExe,
   setFfmpegLocation,
   setDownloadDir,
+  setMusicDir,
   esc: escapeHtml,
 };

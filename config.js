@@ -31,6 +31,7 @@ const state = {
   ytdlpExe: process.env.YTDLP_EXE || "yt-dlp.exe",
   ffmpegLocation: process.env.FFMPEG_LOCATION || "E:\\ffmpeg\\bin",
   downloadDir: path.resolve(process.env.DOWNLOAD_DIR || "./downloads"),
+  musicDir: path.resolve(process.env.MUSIC_DIR || "./music"),
 };
 
 const cfg = {
@@ -65,6 +66,9 @@ const cfg = {
   get downloadDir() {
     return state.downloadDir;
   },
+  get musicDir() {
+    return state.musicDir;
+  },
 };
 
 function setYtdlpExe(p) {
@@ -83,4 +87,16 @@ function setDownloadDir(p) {
   return state.downloadDir;
 }
 
-module.exports = { cfg, setYtdlpExe, setFfmpegLocation, setDownloadDir };
+function setMusicDir(p) {
+  state.musicDir = path.resolve(p);
+  fs.mkdirSync(state.musicDir, { recursive: true });
+  return state.musicDir;
+}
+
+module.exports = {
+  cfg,
+  setYtdlpExe,
+  setFfmpegLocation,
+  setDownloadDir,
+  setMusicDir,
+};

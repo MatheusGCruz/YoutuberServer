@@ -12,5 +12,7 @@ services:
       YTDLP_EXE: yt-dlp
       FFMPEG_LOCATION: /usr/bin
       DOWNLOAD_DIR: /app/downloads
+      MUSIC_DIR: /app/music
     volumes:
       - ./downloads:/app/downloads
+      - ./music:/app/music
