@@ -1,0 +1,16 @@
+services:
+  youtuberserver:
+    build: .
+    container_name: youtuberserver
+    restart: unless-stopped
+    # Host port 3021 -> container port (PORT from .env, default 3030)
+    ports:
+      - "3021:${PORT:-3030}"
+    env_file:
+      - .env
+    environment:
+      YTDLP_EXE: yt-dlp
+      FFMPEG_LOCATION: /usr/bin
+      DOWNLOAD_DIR: /app/downloads
+    volumes:
+      - ./downloads:/app/downloads

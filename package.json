@@ -1,0 +1,19 @@
+{
+  "name": "youtuberserver",
+  "version": "1.0.0",
+  "description": "Node server that runs yt-dlp commands (string interpolated in the middle) and serves mp3 files / HTML pages",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "yt-dlp",
+    "mp3",
+    "ffmpeg"
+  ],
+  "license": "MIT"
+}
