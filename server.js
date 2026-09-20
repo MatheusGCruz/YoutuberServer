@@ -88,11 +88,17 @@ function handleEndpoint(req, res, kind, id) {
           console.log(`mp3 point - ${title}`);
         });
         const stream = fs.createReadStream(file);
-        stream.on("error", () => res.destroy());
+        stream.on("error", (err) => {
+          console.error(`[mp3] stream error for "${id}" (${file}):`, err);
+          res.destroy();
+        });
         stream.pipe(res);
       })
       .catch((err) => {
         cleanupDownloadDir();
+        console.error(`[mp3] error for "${id}":`, err);
+        console.error(`[mp3] stderr:`, String(err.stderr || ""));
+        console.error(`[mp3] stdout:`, String(err.stdout || ""));
         const detail = String(err.stderr || err.output || err.message || "").slice(0, 2000);
         sendJson(res, 500, { error: "command failed", detail });
       });
@@ -111,6 +117,9 @@ function handleEndpoint(req, res, kind, id) {
       })
       .catch((err) => {
         cleanupDownloadDir();
+        console.error(`[sitemp3] error for "${id}":`, err);
+        console.error(`[sitemp3] stderr:`, String(err.stderr || ""));
+        console.error(`[sitemp3] stdout:`, String(err.stdout || ""));
         sendJson(res, 500, { error: "command failed", detail: String(err.message || "").slice(0, 2000) });
       });
     return;
