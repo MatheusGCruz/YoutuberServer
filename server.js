@@ -18,6 +18,15 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function asciiSafe(s, fallback) {
+  return String(s).replace(/[^\x20-\x7e]/g, "").replace(/\s+/g, " ").trim().slice(0, 150) || fallback;
+}
+
+function contentDisposition(name, ext) {
+  const full = `${name}.${ext}`;
+  return `attachment; filename="${asciiSafe(full, `download.${ext}`)}"; filename*=UTF-8''${encodeURIComponent(full)}`;
+}
+
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
@@ -79,7 +88,7 @@ function handleEndpoint(req, res, kind, id) {
         res.writeHead(200, {
           "Content-Type": "audio/mpeg",
           "Content-Length": stat.size,
-          "Content-Disposition": `attachment; filename="${title}.mp3"`,
+          "Content-Disposition": contentDisposition(title, cfg.resultExt),
           "Cache-Control": "no-store",
         });
         afterResponse(res, () => {
